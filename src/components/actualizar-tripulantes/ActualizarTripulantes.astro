@@ -1,0 +1,293 @@
+---
+// ActualizarTripulantes component
+---
+
+<div class="flex flex-col items-center min-h-screen bg-[#f4f7f9] pt-[67px] pb-10">
+	<!-- Contenedor principal -->
+	<div id="input-container" class="w-full max-w-[650px] mb-5">
+		<!-- Textarea para pegar la lista de nombres -->
+		<div class="p-4">
+			<textarea
+				id="names-textarea"
+				class="w-full p-3 text-base border border-gray-300 rounded-md block resize-y box-border h-[250px] bg-white focus:outline-none focus:border-gray-400 text-gray-800"
+				placeholder="Pega aquí la lista de nombres (uno por línea)"
+			/>
+		</div>
+	</div>
+
+	<!-- Botón Process -->
+	<div id="process-button-container" class="mt-4 flex justify-center mb-5">
+		<button
+			id="action-button"
+			class="inline-flex items-center px-6 py-2 text-sm font-medium rounded-md text-white bg-[#002B45] focus:outline-none transition-shadow hover:shadow-md"
+		>
+			Procesar
+		</button>
+	</div>
+
+	<!-- Contenedor para el buscador y la tabla generada -->
+	<div id="results-container" class="w-[90%] max-w-[650px] mx-auto hidden">
+		<!-- Buscador -->
+		<div class="mb-3 mt-5">
+			<input
+				id="search-input"
+				type="text"
+				placeholder="Buscar nombres..."
+				class="w-full p-3 text-base border border-gray-300 rounded-md block bg-white focus:outline-none focus:border-gray-400 text-gray-800"
+			/>
+		</div>
+
+		<!-- Tabla -->
+		<div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+			<div class="bg-[#002B45] text-white p-3 border-b border-[#003366]">
+				<div class="flex justify-between items-center">
+					<span class="font-medium">Tripulantes: <span id="total-count">0</span></span>
+					<span class="font-medium">Checkeados: <span id="checked-count">0</span></span>
+				</div>
+			</div>
+
+			<div class="overflow-x-auto">
+				<table class="w-full">
+					<tbody id="names-tbody">
+						<!-- Rows will be added dynamically -->
+					</tbody>
+				</table>
+			</div>
+		</div>
+
+		<!-- Botón Reiniciar -->
+		<div class="mt-6 flex justify-center">
+			<button
+				id="reset-button"
+				class="inline-flex items-center px-6 py-2 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none transition-shadow hover:shadow-md"
+			>
+				Reiniciar
+			</button>
+		</div>
+	</div>
+
+	<!-- Diálogo de alerta personalizado -->
+	<div id="alert-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 hidden">
+		<div id="alert-dialog" class="w-full max-w-md rounded-md overflow-hidden shadow-lg transition-opacity duration-200">
+			<!-- Encabezado -->
+			<div class="bg-[#001a33] px-4 py-3 flex items-center justify-between">
+				<h3 class="text-base font-medium text-white">Error</h3>
+				<button id="alert-close" class="rounded-full p-1 text-white hover:bg-white/10">
+					<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+				</button>
+			</div>
+
+			<!-- Cuerpo del mensaje -->
+			<div class="bg-white px-4 py-3">
+				<p id="alert-message" class="text-sm text-gray-700"></p>
+				<div class="mt-4 flex justify-end">
+					<button
+						id="alert-ok"
+						class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+					>
+						Aceptar
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		let namesData: Array<{ name: string; id: string }> = [];
+		const checkedRows: { [key: string]: boolean } = {};
+
+		const textarea = document.getElementById('names-textarea') as HTMLTextAreaElement;
+		const actionButton = document.getElementById('action-button') as HTMLButtonElement;
+		const resetButton = document.getElementById('reset-button') as HTMLButtonElement;
+		const inputContainer = document.getElementById('input-container');
+		const processButtonContainer = document.getElementById('process-button-container');
+		const resultsContainer = document.getElementById('results-container');
+		const searchInput = document.getElementById('search-input') as HTMLInputElement;
+		const namesTbody = document.getElementById('names-tbody');
+		const totalCountSpan = document.getElementById('total-count');
+		const checkedCountSpan = document.getElementById('checked-count');
+		const alertOverlay = document.getElementById('alert-overlay');
+		const alertMessage = document.getElementById('alert-message');
+		const alertClose = document.getElementById('alert-close');
+		const alertOk = document.getElementById('alert-ok');
+
+		let isTableGenerated = false;
+
+		function showAlert(message: string) {
+			if (alertMessage) alertMessage.textContent = message;
+			if (alertOverlay) alertOverlay.classList.remove('hidden');
+			if (document.body) document.body.style.overflow = 'hidden';
+		}
+
+		function hideAlert() {
+			if (alertOverlay) alertOverlay.classList.add('hidden');
+			if (document.body) document.body.style.overflow = 'auto';
+		}
+
+		function generateTable() {
+			const pastedText = textarea.value.trim();
+			if (!pastedText) {
+				showAlert('Introduce alguna lista de nombres');
+				return;
+			}
+
+			const names = pastedText
+				.split('\n')
+				.map((line) => line.trim())
+				.filter((name) => name);
+
+			// Crear objetos con IDs únicos para manejar duplicados
+			namesData = names.map((name, index) => ({
+				name: name,
+				id: `${name}-${index}`,
+			}));
+
+			// Ordenar por nombre manteniendo los IDs únicos
+			namesData.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+
+			// Limpiar checkboxes anteriores
+			Object.keys(checkedRows).forEach(key => delete checkedRows[key]);
+
+			isTableGenerated = true;
+			if (inputContainer) inputContainer.classList.add('hidden');
+			if (processButtonContainer) processButtonContainer.classList.add('hidden');
+			if (resultsContainer) resultsContainer.classList.remove('hidden');
+			renderTable();
+		}
+
+		function resetForm() {
+			namesData = [];
+			Object.keys(checkedRows).forEach(key => delete checkedRows[key]);
+			isTableGenerated = false;
+			textarea.value = '';
+			if (inputContainer) inputContainer.classList.remove('hidden');
+			if (processButtonContainer) processButtonContainer.classList.remove('hidden');
+			if (resultsContainer) resultsContainer.classList.add('hidden');
+			if (searchInput) searchInput.value = '';
+		}
+
+		function toggleRow(id: string, checked: boolean) {
+			if (checked) {
+				checkedRows[id] = true;
+			} else {
+				delete checkedRows[id];
+			}
+			updateCheckedCount();
+		}
+
+		function updateCheckedCount() {
+			const count = Object.keys(checkedRows).filter((key) => checkedRows[key]).length;
+			if (checkedCountSpan) checkedCountSpan.textContent = count.toString();
+		}
+
+		function filterNames() {
+			const searchTerm = searchInput.value.toLowerCase().trim();
+			const filtered = namesData.filter((item) => 
+				item.name.toLowerCase().includes(searchTerm)
+			);
+			renderTable(filtered);
+		}
+
+		function renderTable(filteredNames?: Array<{ name: string; id: string }>) {
+			const namesToRender = filteredNames || namesData;
+			
+			if (!namesTbody || !totalCountSpan) return;
+
+			// Update total count
+			totalCountSpan.textContent = namesData.length.toString();
+
+			// Clear and render rows
+			namesTbody.innerHTML = '';
+
+			if (namesToRender.length > 0) {
+				namesToRender.forEach((item) => {
+					const row = document.createElement('tr');
+					const isChecked = !!checkedRows[item.id];
+					
+					row.className = `border-b border-gray-200 ${isChecked ? 'bg-amber-100' : ''}`;
+
+					row.innerHTML = `
+						<td class="p-3 w-[50px] text-center">
+							<div class="inline-block relative w-5 h-5 align-top mt-0.5">
+								<input
+									type="checkbox"
+									id="checkbox-${item.id.replace(/\s+/g, '-')}"
+									class="peer sr-only"
+									${isChecked ? 'checked' : ''}
+								/>
+								<label
+									for="checkbox-${item.id.replace(/\s+/g, '-')}"
+									class="absolute inset-0 flex items-center justify-center border-2 border-gray-300 rounded-md cursor-pointer bg-white peer-checked:bg-amber-500 peer-checked:border-amber-500"
+								>
+									<svg
+										class="w-3 h-3 text-white absolute"
+										style="opacity: ${isChecked ? 1 : 0}"
+										viewBox="0 0 24 24"
+										fill="none"
+										xmlns="http://www.w3.org/2000/svg"
+									>
+										<path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+									</svg>
+								</label>
+							</div>
+						</td>
+						<td class="p-3 text-gray-800">${item.name}</td>
+					`;
+
+					namesTbody.appendChild(row);
+				});
+
+				// Add event listeners to checkboxes
+				namesToRender.forEach((item) => {
+					const checkbox = document.getElementById(`checkbox-${item.id.replace(/\s+/g, '-')}`) as HTMLInputElement;
+					if (checkbox) {
+						checkbox.addEventListener('change', function(e) {
+							toggleRow(item.id, checkbox.checked);
+							renderTable();
+						});
+					}
+				});
+			} else {
+				namesTbody.innerHTML = `
+					<tr>
+						<td colspan="2" class="p-4 text-center text-gray-500">
+							No se encontraron resultados
+						</td>
+					</tr>
+				`;
+			}
+		}
+
+		// Event listeners
+		actionButton.addEventListener('click', generateTable);
+		
+		if (resetButton) {
+			resetButton.addEventListener('click', resetForm);
+		}
+
+		if (searchInput) {
+			searchInput.addEventListener('input', filterNames);
+		}
+
+		if (alertClose) {
+			alertClose.addEventListener('click', hideAlert);
+		}
+
+		if (alertOk) {
+			alertOk.addEventListener('click', hideAlert);
+		}
+
+		if (alertOverlay) {
+			alertOverlay.addEventListener('click', function(e) {
+				if (e.target === alertOverlay) {
+					hideAlert();
+				}
+			});
+		}
+	});
+</script>
+

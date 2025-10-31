@@ -1,0 +1,371 @@
+---
+interface Props {
+  className?: string;
+}
+
+const { className = '' } = Astro.props;
+---
+
+<div class={`${className}`}>
+  <!-- Grid de resumen de horas -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-6" id="summary-grid">
+    <div class="flex flex-col items-center">
+      <span class="text-sm text-gray-600 mb-2 flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+        <span>Horas Totales</span>
+      </span>
+      <span class="text-2xl font-bold" id="summary-total">0.00</span>
+    </div>
+
+    <div class="flex flex-col items-center extra-hours-summary hidden">
+      <span class="text-sm text-gray-600 mb-2 flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+        <span>Horas Extras</span>
+      </span>
+      <span class="text-2xl font-bold" id="summary-extra">0.00</span>
+    </div>
+
+    <div class="flex flex-col items-center night-hours-summary hidden">
+      <span class="text-sm text-gray-600 mb-2 flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full bg-[#002B45]"></div>
+        <span>Horas Nocturnas</span>
+      </span>
+      <span class="text-2xl font-bold" id="summary-night">0.00</span>
+    </div>
+
+    <div class="flex flex-col items-center holiday-hours-summary hidden">
+      <span class="text-sm text-gray-600 mb-2 flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+        <span>Horas Festivas</span>
+      </span>
+      <span class="text-2xl font-bold" id="summary-holiday">0.00</span>
+    </div>
+  </div>
+
+  <!-- Botón de exportar -->
+  <div class="mt-4 pt-3 border-t border-gray-300 flex justify-end">
+    <button
+      id="export-excel"
+      type="button"
+      class="w-48 h-9 flex items-center justify-center px-3 py-1.5 text-sm font-medium text-white bg-[#002B45] rounded-md focus:outline-none disabled:bg-gray-300 disabled:cursor-not-allowed hover:shadow-md transition-shadow"
+    >
+      <svg class="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      Exportar a Excel
+    </button>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar almacenamiento compartido si no existe
+    if (!(window as any).timeEntriesData) {
+      (window as any).timeEntriesData = {};
+    }
+    
+    let currentSummary = {
+      total: 0,
+      extra: 0,
+      night: 0,
+      holiday: 0,
+      custom: {}
+    };
+    let currentWorkerData = { firstName: '', lastName: '', secondLastName: '' };
+
+    // Elementos del DOM
+    const summaryTotalElement = document.getElementById('summary-total');
+    const summaryExtraElement = document.getElementById('summary-extra');
+    const summaryNightElement = document.getElementById('summary-night');
+    const summaryHolidayElement = document.getElementById('summary-holiday');
+    const exportButton = document.getElementById('export-excel');
+
+    const extraHoursSummary = document.querySelector('.extra-hours-summary');
+    const nightHoursSummary = document.querySelector('.night-hours-summary');
+    const holidayHoursSummary = document.querySelector('.holiday-hours-summary');
+
+    function formatNumber(value: number): string {
+      return isNaN(value) ? "0.00" : value.toFixed(2);
+    }
+
+    function calculateSummary(event?: any) {
+      try {
+        const timeEntriesData = (window as any).timeEntriesData || {};
+        if (!timeEntriesData || Object.keys(timeEntriesData).length === 0) {
+          updateSummaryDisplay(0, 0, 0, 0);
+          return;
+        }
+
+        let totals = { total: 0, extra: 0, night: 0, holiday: 0 };
+
+        // Sumar todas las entradas
+        Object.entries(timeEntriesData).forEach(([dateKey, data]: [string, any]) => {
+          if (data && typeof data === 'object') {
+            totals.total += data.totalHours || 0;
+            totals.extra += data.extraHours || 0;
+            totals.night += data.nightHours || 0;
+            totals.holiday += data.holidayHours || 0;
+          }
+        });
+
+        currentSummary = { ...totals, custom: {} };
+        updateSummaryDisplay(totals.total, totals.extra, totals.night, totals.holiday);
+      } catch (e) {
+        console.error('Error calculating summary:', e);
+        updateSummaryDisplay(0, 0, 0, 0);
+      }
+    }
+
+    function updateSummaryDisplay(total: number, extra: number, night: number, holiday: number) {
+      if (summaryTotalElement) summaryTotalElement.textContent = formatNumber(total);
+      if (summaryExtraElement) summaryExtraElement.textContent = formatNumber(extra);
+      if (summaryNightElement) summaryNightElement.textContent = formatNumber(night);
+      if (summaryHolidayElement) summaryHolidayElement.textContent = formatNumber(holiday);
+
+      // Mostrar/ocultar secciones según valores
+      if (extraHoursSummary) extraHoursSummary.classList.toggle('hidden', extra <= 0);
+      if (nightHoursSummary) nightHoursSummary.classList.toggle('hidden', night <= 0);
+      if (holidayHoursSummary) holidayHoursSummary.classList.toggle('hidden', holiday <= 0);
+
+      // Habilitar/deshabilitar botón de exportar
+      if (exportButton) {
+        (exportButton as HTMLButtonElement).disabled = total <= 0;
+      }
+    }
+
+    async function exportToExcel() {
+      try {
+        const timeEntriesData = (window as any).timeEntriesData || {};
+        const entries = Object.entries(timeEntriesData)
+          .filter(([dateKey, data]) => data && (data as any).position)
+          .map(([dateKey, data]) => ({
+            date: new Date(dateKey),
+            ...(data as any)
+          }))
+          .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+        if (entries.length === 0) {
+          alert("No hay datos para exportar.");
+            return;
+          }
+
+        // Importar ExcelJS dinámicamente
+        const ExcelJS = await import('exceljs');
+
+        // Verificar qué columnas tienen datos
+        const hasExtras = entries.some(entry => entry.extraHours > 0) || currentSummary.extra > 0;
+        const hasNight = entries.some(entry => entry.nightHours > 0) || currentSummary.night > 0;
+        const hasHoliday = entries.some(entry => entry.holidayHours > 0) || currentSummary.holiday > 0;
+
+        // Crear encabezados dinámicos
+        const baseHeaders = ["Fecha", "Puesto", "Jornada", "Horas Totales"];
+        const optionalHeaders = [];
+        if (hasExtras) optionalHeaders.push("Horas Extras");
+        if (hasNight) optionalHeaders.push("Horas Nocturnas");
+        if (hasHoliday) optionalHeaders.push("Horas Festivas");
+
+        const headers = [...baseHeaders, ...optionalHeaders];
+        const numColumns = headers.length;
+
+        // Crear workbook y worksheet
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Registro de Horas');
+
+        // Título
+        const titleRow = worksheet.addRow([`Registro de Horas - ${currentWorkerData.firstName || "Usuario"}`]);
+        titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FF002B45' } };
+        titleRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+        worksheet.addRow([]);
+
+        // Encabezados
+        const headerRow = worksheet.addRow(headers);
+        
+        // Estilo para encabezados
+        headerRow.eachCell((cell: any, colNumber: number) => {
+          if (colNumber <= numColumns) {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FF1e3a8a' }
+            };
+            cell.font = {
+              color: { argb: 'FFFFFFFF' },
+              bold: true,
+              size: 11
+            };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FF1e3a8a' } },
+              left: { style: 'thin', color: { argb: 'FF1e3a8a' } },
+              bottom: { style: 'thin', color: { argb: 'FF1e3a8a' } },
+              right: { style: 'thin', color: { argb: 'FF1e3a8a' } }
+            };
+          }
+        });
+
+        // Datos
+        entries.forEach((entry: any, index: number) => {
+          const baseRow = [
+            entry.date.toLocaleDateString('es-ES'),
+            entry.position,
+            entry.workStart && entry.workEnd ? `${entry.workStart} - ${entry.workEnd}` : "",
+            entry.totalHours > 0 ? formatNumber(entry.totalHours) : ""
+          ];
+
+          if (hasExtras) baseRow.push(entry.extraHours > 0 ? formatNumber(entry.extraHours) : "");
+          if (hasNight) baseRow.push(entry.nightHours > 0 ? formatNumber(entry.nightHours) : "");
+          if (hasHoliday) baseRow.push(entry.holidayHours > 0 ? formatNumber(entry.holidayHours) : "");
+
+          const dataRow = worksheet.addRow(baseRow);
+          
+          // Estilo para filas de datos
+          dataRow.eachCell((cell: any, colNumber: number) => {
+            if (colNumber <= numColumns) {
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: index % 2 === 0 ? 'FFF8FAFC' : 'FFFFFFFF' }
+              };
+              cell.font = { size: 10 };
+              cell.alignment = { horizontal: 'center', vertical: 'middle' };
+              cell.border = {
+                top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+                left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+                bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+                right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+              };
+              
+              // Formato numérico para columnas de horas
+              if (colNumber >= 4 && cell.value && typeof cell.value === 'string' && cell.value !== '') {
+                cell.numFmt = '0.00';
+              }
+            }
+          });
+        });
+
+        // Fila vacía antes de totales
+        worksheet.addRow([]);
+
+        // Fila de totales
+        const totalsRowData = ["", "", "Σ Total", formatNumber(currentSummary.total)];
+        if (hasExtras) totalsRowData.push(currentSummary.extra > 0 ? formatNumber(currentSummary.extra) : "");
+        if (hasNight) totalsRowData.push(currentSummary.night > 0 ? formatNumber(currentSummary.night) : "");
+        if (hasHoliday) totalsRowData.push(currentSummary.holiday > 0 ? formatNumber(currentSummary.holiday) : "");
+
+        const totalsRowExcel = worksheet.addRow(totalsRowData);
+
+        // Estilo para fila de totales (solo desde la columna "Σ Total" en adelante)
+        totalsRowExcel.eachCell((cell: any, colNumber: number) => {
+          if (colNumber <= numColumns) {
+            // Solo aplicar el fondo naranja desde la columna 3 ("Σ Total") en adelante
+            if (colNumber >= 3) {
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFFEF3C7' }
+              };
+              cell.font = { bold: true };
+              cell.border = {
+                top: { style: 'medium', color: { argb: 'FFF59E0B' } },
+                left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+                bottom: { style: 'medium', color: { argb: 'FFF59E0B' } },
+                right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+              };
+            } else {
+              // Para las primeras 2 columnas, solo aplicar bordes sin fondo
+              cell.border = {
+                top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+                left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+                bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+                right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+              };
+            }
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            
+            // Formato numérico para columnas de horas
+            if (colNumber >= 4 && cell.value && typeof cell.value === 'string' && cell.value !== '') {
+              cell.numFmt = '0.00';
+            }
+          }
+        });
+
+        // Ajustar ancho de columnas
+        headers.forEach((header, index) => {
+          const column = worksheet.getColumn(index + 1);
+          let maxWidth = header.length;
+          
+          worksheet.eachRow((row: any, rowNumber: number) => {
+            if (rowNumber > 2) {
+              const cell = row.getCell(index + 1);
+              if (cell.value) {
+                const cellLength = cell.value.toString().length;
+                if (cellLength > maxWidth) {
+                  maxWidth = cellLength;
+                }
+              }
+            }
+          });
+          
+          column.width = Math.min(maxWidth + 2, 20);
+        });
+
+        // Generar archivo
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        
+        const filename = `${(currentWorkerData.firstName || "Usuario").replace(/\s+/g, "_")}_RegistroHoras_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}.xlsx`;
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 0);
+
+      } catch (error) {
+        console.error('Error al exportar a Excel:', error);
+        alert('Ocurrió un error al exportar a Excel. Por favor, inténtelo de nuevo.');
+      }
+    }
+
+    // Event listeners
+    if (exportButton) {
+      exportButton.addEventListener('click', exportToExcel);
+    }
+
+    // Obtener nombre del trabajador desde el input
+    function updateWorkerData() {
+      const workerNameInput = document.getElementById('worker-name') as HTMLInputElement;
+      if (workerNameInput) {
+        currentWorkerData.firstName = workerNameInput.value || '';
+      }
+    }
+
+    // Escuchar cambios en los datos
+    document.addEventListener('dataChanged', function(event: any) {
+      calculateSummary(event);
+    });
+    document.addEventListener('dayDataUpdated', function() {
+      calculateSummary();
+    });
+    document.addEventListener('workerDataChanged', function(event: any) {
+      if (event.detail) {
+        currentWorkerData = event.detail;
+      }
+    });
+
+    // Actualizar nombre del trabajador periódicamente
+    setInterval(updateWorkerData, 1000);
+    updateWorkerData();
+
+    // Calcular resumen inicial
+    calculateSummary();
+  });
+</script>

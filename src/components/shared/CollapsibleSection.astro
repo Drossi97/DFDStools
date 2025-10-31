@@ -1,0 +1,14 @@
+---
+interface Props {
+  title?: string;
+  icon?: string;
+  isOpen?: boolean;
+  className?: string;
+}
+
+const { title, icon, isOpen = true, className = '' } = Astro.props;
+---
+
+<div class={`${className}`}>
+  <slot />
+</div>
