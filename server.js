@@ -30,8 +30,11 @@ const mimeTypes = {
 const server = http.createServer((req, res) => {
   console.log(`${req.method} ${req.url}`);
 
-  // Parse URL
-  let filePath = join(__dirname, 'dist', req.url === '/' ? '/index.html' : req.url);
+  // Parse URL and remove query string
+  const urlPath = new URL(req.url, `http://localhost`).pathname;
+  
+  // Try exact file first
+  let filePath = join(__dirname, 'dist', urlPath === '/' ? '/index.html' : urlPath);
 
   // Check if file exists
   try {
@@ -44,13 +47,24 @@ const server = http.createServer((req, res) => {
       const content = readFileSync(filePath);
       res.writeHead(200, { 'Content-Type': contentType });
       res.end(content);
+    } else if (stats.isDirectory()) {
+      // If it's a directory, try index.html inside it
+      const indexPath = join(filePath, 'index.html');
+      try {
+        const content = readFileSync(indexPath);
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(content);
+      } catch (indexErr) {
+        res.writeHead(404, { 'Content-Type': 'text/html' });
+        res.end('<h1>404 Not Found</h1>');
+      }
     } else {
       res.writeHead(404, { 'Content-Type': 'text/html' });
       res.end('<h1>404 Not Found</h1>');
     }
   } catch (err) {
-    // Try index.html for SPA routes
-    const indexPath = join(__dirname, 'dist', 'index.html');
+    // File doesn't exist, try as directory
+    const indexPath = join(filePath, 'index.html');
     try {
       const content = readFileSync(indexPath);
       res.writeHead(200, { 'Content-Type': 'text/html' });
