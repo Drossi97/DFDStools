@@ -6,7 +6,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "start": "astro preview --host",
+    "start": "node server.js",
     "astro": "astro"
   },
   "dependencies": {
