@@ -4,12 +4,12 @@ import Header from '../components/shared/Header.astro';
 ---
 
 <Layout>
-  <Header />
-  
+	<Header />
+	
   <main class="min-h-screen bg-[#f4f7f9] pt-[67px]">
     <div class="flex flex-col items-center pt-24">
-      <div class="w-full max-w-2xl px-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="w-full max-w-4xl px-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <!-- Botón Hoja de Horas -->
           <a href="/hoja-de-horas" class="bg-white border border-gray-300 rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col items-center text-center cursor-pointer">
             <svg class="w-16 h-16 text-[#002B45] mb-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -39,8 +39,19 @@ import Header from '../components/shared/Header.astro';
             </svg>
             <h2 class="text-lg font-semibold text-gray-900 mb-2">Actualizar Tripulantes</h2>
           </a>
-        </div>
-      </div>
-    </div>
-  </main>
+
+          <!-- Botón Calculadora -->
+          <a href="/calculadora" class="bg-white border border-gray-300 rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col items-center text-center cursor-pointer">
+            <svg class="w-16 h-16 text-[#002B45] mb-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2"/>
+              <line x1="9" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="2"/>
+              <line x1="9" y1="12" x2="15" y2="12" stroke="currentColor" stroke-width="2"/>
+              <line x1="9" y1="16" x2="13" y2="16" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Calculadora</h2>
+          </a>
+				</div>
+			</div>
+		</div>
+	</main>
 </Layout>

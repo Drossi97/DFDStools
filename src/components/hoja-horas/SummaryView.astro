@@ -6,38 +6,38 @@ interface Props {
 const { className = '' } = Astro.props;
 ---
 
-<!-- Grid de resumen de horas -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-6" id="summary-grid">
-  <div class="flex flex-col items-center">
-    <span class="text-sm text-gray-600 mb-2 flex items-center gap-1">
-      <div class="w-3 h-3 rounded-full bg-green-500"></div>
-      <span>Horas Totales</span>
-    </span>
-    <span class="text-2xl font-bold" id="summary-total">0.00</span>
-  </div>
+  <!-- Grid de resumen de horas -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-6" id="summary-grid">
+    <div class="flex flex-col items-center">
+      <span class="text-sm text-gray-600 mb-2 flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+        <span>Horas Totales</span>
+      </span>
+      <span class="text-2xl font-bold" id="summary-total">0.00</span>
+    </div>
 
-  <div class="flex flex-col items-center extra-hours-summary hidden">
-    <span class="text-sm text-gray-600 mb-2 flex items-center gap-1">
-      <div class="w-3 h-3 rounded-full bg-red-500"></div>
-      <span>Horas Extras</span>
-    </span>
-    <span class="text-2xl font-bold" id="summary-extra">0.00</span>
-  </div>
+    <div class="flex flex-col items-center extra-hours-summary hidden">
+      <span class="text-sm text-gray-600 mb-2 flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+        <span>Horas Extras</span>
+      </span>
+      <span class="text-2xl font-bold" id="summary-extra">0.00</span>
+    </div>
 
-  <div class="flex flex-col items-center night-hours-summary hidden">
-    <span class="text-sm text-gray-600 mb-2 flex items-center gap-1">
-      <div class="w-3 h-3 rounded-full bg-[#002B45]"></div>
-      <span>Horas Nocturnas</span>
-    </span>
-    <span class="text-2xl font-bold" id="summary-night">0.00</span>
-  </div>
+    <div class="flex flex-col items-center night-hours-summary hidden">
+      <span class="text-sm text-gray-600 mb-2 flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full bg-[#002B45]"></div>
+        <span>Horas Nocturnas</span>
+      </span>
+      <span class="text-2xl font-bold" id="summary-night">0.00</span>
+    </div>
 
-  <div class="flex flex-col items-center holiday-hours-summary hidden">
-    <span class="text-sm text-gray-600 mb-2 flex items-center gap-1">
-      <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
-      <span>Horas Festivas</span>
-    </span>
-    <span class="text-2xl font-bold" id="summary-holiday">0.00</span>
+    <div class="flex flex-col items-center holiday-hours-summary hidden">
+      <span class="text-sm text-gray-600 mb-2 flex items-center gap-1">
+        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+        <span>Horas Festivas</span>
+      </span>
+      <span class="text-2xl font-bold" id="summary-holiday">0.00</span>
   </div>
 </div>
 
@@ -352,7 +352,7 @@ const { className = '' } = Astro.props;
                 cell.alignment = { horizontal: 'right', vertical: 'middle' };
                 cell.numFmt = '0.00';
               } else {
-                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+              cell.alignment = { horizontal: 'center', vertical: 'middle' };
               }
               cell.border = {
                 top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
@@ -433,7 +433,7 @@ const { className = '' } = Astro.props;
         // Generar archivo
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
+        
         // Normalizar cadenas para nombre de archivo
         const sanitize = (s: string) => s
           .normalize('NFD')

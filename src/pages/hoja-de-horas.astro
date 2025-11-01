@@ -4,7 +4,6 @@ import Header from '../components/shared/Header.astro';
 import Calendar from '../components/hoja-horas/Calendar.astro';
 import DayEditor from '../components/hoja-horas/DayEditor.astro';
 import SummaryView from '../components/hoja-horas/SummaryView.astro';
-import CollapsibleSection from '../components/shared/CollapsibleSection.astro';
 
 // SVG Icons
 const calendarIcon = `<svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -49,9 +48,6 @@ const chartIcon = `<svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="non
           </div>
         </div>
 
-        <!-- Línea separadora -->
-        <hr class="border-gray-300" />
-
         <!-- Sección del Resumen -->
         <div class="border border-gray-300 rounded-md p-4 bg-white">
           <SummaryView />
@@ -80,9 +76,6 @@ const chartIcon = `<svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="non
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const workerNameInput = document.getElementById('worker-name') as HTMLInputElement;
-
-    // Sin localStorage - sin caché persistente
-    // Los datos del trabajador no se guardan
   });
 </script>
 
