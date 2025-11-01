@@ -34,24 +34,27 @@ const { className = '' } = Astro.props;
   <div class="space-y-4 day-editor-form hidden" id="day-editor-form">
     <!-- Selector de puesto -->
     <div class="flex flex-col space-y-1 mb-4">
-      <label for="position-select" class="text-sm font-medium text-gray-600 text-center w-full">
+      <label class="text-sm font-medium text-gray-600 text-center w-full">
         Puesto
       </label>
-      <div class="relative mt-1" id="position-dropdown-container">
-        <button
-          type="button"
-          id="position-button"
-          class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-0 bg-gray-50 flex items-center justify-between"
-        >
-          <span id="position-text">Seleccionar puesto</span>
-          <svg class="h-4 w-4 text-gray-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div id="position-dropdown" class="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg overflow-auto hidden" style="max-height: 240px;">
-          <button type="button" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 block position-option" data-value="">
-            Seleccionar puesto
+      <div class="grid grid-cols-1 gap-2">
+        <!-- Desplegable de puestos -->
+        <div class="relative" id="position-dropdown-container">
+          <button
+            type="button"
+            id="position-button"
+            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-0 bg-gray-50 flex items-center justify-between"
+          >
+            <span id="position-text" class="truncate">Seleccionar puesto</span>
+            <svg class="h-4 w-4 text-gray-600 flex-shrink-0 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
           </button>
+          <div id="position-dropdown" class="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg overflow-auto hidden" style="max-height: 240px;">
+            <button type="button" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 block position-option" data-value="">
+              Seleccionar puesto
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -66,8 +69,10 @@ const { className = '' } = Astro.props;
           <div class="w-full max-w-[120px] mx-auto">
             <input
               id="work-start"
-              type="time"
-              class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 text-center bg-gray-50"
+              type="text"
+              maxlength="5"
+              pattern="^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+              class="work-time-input w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:border-gray-400 text-center bg-gray-50"
             />
           </div>
         </div>
@@ -78,8 +83,10 @@ const { className = '' } = Astro.props;
           <div class="w-full max-w-[120px] mx-auto">
             <input
               id="work-end"
-              type="time"
-              class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 text-center bg-gray-50"
+              type="text"
+              maxlength="5"
+              pattern="^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+              class="work-time-input w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:border-gray-400 text-center bg-gray-50"
             />
           </div>
         </div>
@@ -188,19 +195,67 @@ const { className = '' } = Astro.props;
 
     // Configuración de puestos (igual que en Next.js)
     const availablePositions: Record<string, { start: string; end: string } | string> = {
-      'CM': { start: '06:00', end: '14:00' },
-      'CT': { start: '14:00', end: '22:00' },
-      'CTd': { start: '14:00', end: '22:00' },
-      'CN': { start: '22:00', end: '06:00' },
-      'AM': { start: '06:00', end: '14:00' },
-      'AT': { start: '14:00', end: '22:00' },
-      'AN': { start: '22:00', end: '06:00' },
+      'CM': { start: '06:30', end: '14:30' },
+      'CT': { start: '14:30', end: '22:30' },
+      'CTd': { start: '15:15', end: '23:15' },
+      'CN': { start: '22:30', end: '06:30' },
+      'AM': { start: '07:00', end: '15:00' },
+      'AT': { start: '15:00', end: '23:00' },
+      'AN': { start: '23:00', end: '07:00' },
       'TM1': { start: '06:00', end: '14:00' },
       'TT1': { start: '14:00', end: '22:00' },
       'TN1': { start: '22:00', end: '06:00' },
-      'TM': { start: '06:00', end: '14:00' },
-      'TT': { start: '14:00', end: '22:00' },
-      'TN': { start: '22:00', end: '06:00' },
+      'TM': { start: '07:00', end: '15:00' },
+      'TT': { start: '15:00', end: '23:00' },
+      'TN': { start: '23:00', end: '07:00' },
+      '00:00': { start: '00:00', end: '8:00' },
+      '00:30': { start: '00:30', end: '8:30' },
+      '01:00': { start: '01:00', end: '9:00' },
+      '01:30': { start: '01:30', end: '9:30' },
+      '02:00': { start: '02:00', end: '10:00' },
+      '02:30': { start: '02:30', end: '10:30' },
+      '03:00': { start: '03:00', end: '11:00' },
+      '03:30': { start: '03:30', end: '11:30' },
+      '04:00': { start: '04:00', end: '12:00' },
+      '04:30': { start: '04:30', end: '12:30' },
+      '05:00': { start: '05:00', end: '13:00' },
+      '05:30': { start: '05:30', end: '13:30' },
+      '06:00': { start: '06:00', end: '14:00' },
+      '06:30': { start: '06:30', end: '14:30' },
+      '07:00': { start: '07:00', end: '15:00' },
+      '07:30': { start: '07:30', end: '15:30' },
+      '08:00': { start: '08:00', end: '16:00' },
+      '08:30': { start: '08:30', end: '16:30' },
+      '09:00': { start: '09:00', end: '17:00' },
+      '09:30': { start: '09:30', end: '17:30' },
+      '10:00': { start: '10:00', end: '18:00' },
+      '10:30': { start: '10:30', end: '18:30' },
+      '11:00': { start: '11:00', end: '19:00' },
+      '11:30': { start: '11:30', end: '19:30' },
+      '12:00': { start: '12:00', end: '20:00' },
+      '12:30': { start: '12:30', end: '20:30' },
+      '13:00': { start: '13:00', end: '21:00' },
+      '13:30': { start: '13:30', end: '21:30' },
+      '14:00': { start: '14:00', end: '22:00' },
+      '14:30': { start: '14:30', end: '22:30' },
+      '15:00': { start: '15:00', end: '23:00' },
+      '15:30': { start: '15:30', end: '23:30' },
+      '16:00': { start: '16:00', end: '00:00' },
+      '16:30': { start: '16:30', end: '00:30' },
+      '17:00': { start: '17:00', end: '01:00' },
+      '17:30': { start: '17:30', end: '01:30' },
+      '18:00': { start: '18:00', end: '02:00' },
+      '18:30': { start: '18:30', end: '02:30' },
+      '19:00': { start: '19:00', end: '03:00' },
+      '19:30': { start: '19:30', end: '03:30' },
+      '20:00': { start: '20:00', end: '04:00' },
+      '20:30': { start: '20:30', end: '04:30' },
+      '21:00': { start: '21:00', end: '05:00' },
+      '21:30': { start: '21:30', end: '05:30' },
+      '22:00': { start: '22:00', end: '06:00' },
+      '22:30': { start: '22:30', end: '06:30' },
+      '23:00': { start: '23:00', end: '07:00' },
+      '23:30': { start: '23:30', end: '07:30' },
       'D': 'Descanso',
       'P': 'Permiso',
       'B': 'Baja',
@@ -254,7 +309,7 @@ const { className = '' } = Astro.props;
       });
     }
 
-    function selectPosition(value: string) {
+    function selectPosition(value: string, silent?: boolean) {
       if (!positionText) return;
 
       const position = availablePositions[value];
@@ -265,6 +320,9 @@ const { className = '' } = Astro.props;
         isSelectOpen = false;
       }
 
+      // Limpiar campo de turno personalizado
+      // (eliminado)
+
       // Auto-llenar horarios para turnos
       if (value && typeof position === 'object' && workStartInput && workEndInput) {
         workStartInput.value = position.start;
@@ -273,7 +331,9 @@ const { className = '' } = Astro.props;
 
       updateVisibility(value);
       calculateHours();
-      saveDayData(value);
+      if (!silent) {
+        saveDayData(value);
+      }
     }
 
     function updateVisibility(position: string) {
@@ -297,35 +357,47 @@ const { className = '' } = Astro.props;
       return hours * 60 + minutes;
     }
 
+    function addHours(time: string, hours: number): string {
+      const minutes = timeToMinutes(time) + (hours * 60);
+      const totalHours = Math.floor(minutes / 60) % 24;
+      const totalMinutes = minutes % 60;
+      return `${String(totalHours).padStart(2, '0')}:${String(totalMinutes).padStart(2, '0')}`;
+    }
+
+    function isTimeString(value: string | null | undefined): boolean {
+      return !!value && /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(value);
+    }
+
     function calculateNightHours(startTime: string, endTime: string): number {
       const startMinutes = timeToMinutes(startTime);
-      const endMinutes = timeToMinutes(endTime);
-      const nightStartMinutes = timeToMinutes(nightStart);
-      const nightEndMinutes = timeToMinutes(nightEnd);
+      const endMinutesRaw = timeToMinutes(endTime);
+      const nightStartMinutes = timeToMinutes(nightStart); // 22:00 -> 1320
+      const nightEndMinutes = timeToMinutes(nightEnd);     // 06:00 -> 360
 
-      let nightMinutes = 0;
+      if (isNaN(startMinutes) || isNaN(endMinutesRaw)) return 0;
+
       let workStart = startMinutes;
-      let workEnd = endMinutes;
-
-      // Si el turno cruza medianoche
-      if (workEnd < workStart) {
+      let workEnd = endMinutesRaw;
+      if (workEnd <= workStart) {
+        // Cruza medianoche
         workEnd += 24 * 60;
       }
 
-      // Períodos nocturnos: 22:00-24:00 y 00:00-06:00
-      const nightPeriods = [
-        { start: nightStartMinutes, end: 24 * 60 }, // 22:00-24:00
-        { start: 0, end: nightEndMinutes } // 00:00-06:00
-      ];
+      const overlap = (aStart: number, aEnd: number, bStart: number, bEnd: number) => {
+        const s = Math.max(aStart, bStart);
+        const e = Math.min(aEnd, bEnd);
+        return Math.max(0, e - s);
+      };
 
-      nightPeriods.forEach(period => {
-        const overlapStart = Math.max(workStart, period.start);
-        const overlapEnd = Math.min(workEnd, period.end);
-        
-        if (overlapStart < overlapEnd) {
-          nightMinutes += overlapEnd - overlapStart;
-        }
-      });
+      let nightMinutes = 0;
+      // Tramo nocturno del día base: 22:00 → 24:00
+      nightMinutes += overlap(workStart, workEnd, nightStartMinutes, 24 * 60);
+      // Tramo nocturno de la madrugada siguiente: 00:00 → 06:00
+      if (workEnd > 24 * 60) {
+        nightMinutes += overlap(workStart, workEnd, 24 * 60, 24 * 60 + nightEndMinutes);
+      } else {
+        nightMinutes += overlap(workStart, workEnd, 0, nightEndMinutes);
+      }
 
       return nightMinutes / 60;
     }
@@ -403,7 +475,10 @@ const { className = '' } = Astro.props;
     }
 
     function formatDateKey(date: Date): string {
-      return date.toISOString().split('T')[0];
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
 
     function getDayName(date: Date): string {
@@ -414,13 +489,31 @@ const { className = '' } = Astro.props;
       if (!currentSelectedDate) return;
 
       const dateKey = formatDateKey(currentSelectedDate);
-      const currentPosition = position || (positionText?.textContent === 'Seleccionar puesto' ? '' : 
-                             Object.keys(availablePositions).find(key => 
-                               (typeof availablePositions[key] === 'string' ? availablePositions[key] : key) === positionText?.textContent
-                             ) || '');
+      const existing = entryData[dateKey] || {};
+
+      // 1) Posición explícita (usuario cambió turno en el selector)
+      // 2) Si no hay explícita, mantener la ya guardada
+      // 3) Si no hay guardada, derivar del texto visible del botón
+      let resolvedPosition = position || existing.position || '';
+      if (!resolvedPosition) {
+        const displayed = positionText?.textContent || '';
+        if (displayed && displayed !== 'Seleccionar puesto') {
+          if (displayed in availablePositions) {
+            resolvedPosition = displayed; // clave del catálogo
+          } else if (isTimeString(displayed)) {
+            resolvedPosition = displayed; // hora como nombre
+          } else {
+            // Buscar por etiqueta de catálogo (valor string)
+            const key = Object.keys(availablePositions).find(k =>
+              typeof availablePositions[k] === 'string' ? (availablePositions[k] as string) === displayed : k === displayed
+            );
+            if (key) resolvedPosition = key;
+          }
+        }
+      }
       
       const data = {
-        position: currentPosition,
+        position: resolvedPosition,
         workStart: workStartInput?.value || '',
         workEnd: workEndInput?.value || '',
         isHoliday: holidayCheckbox?.checked || false,
@@ -430,8 +523,14 @@ const { className = '' } = Astro.props;
         holidayHours: 0
       };
 
+      // No modificar data.position cuando sea una hora: el nombre del turno es independiente del rango efectivo
+      // Si el nombre del turno es una hora y la hora de inicio es válida, sincronizar
+      if (isTimeString(data.position) && isTimeString(data.workStart) && data.position !== data.workStart) {
+        data.position = data.workStart;
+      }
+
       // Calcular horas si es un puesto con horario
-      if (currentPosition && !noHoursPositions.includes(currentPosition) && data.workStart && data.workEnd) {
+      if (resolvedPosition && !noHoursPositions.includes(resolvedPosition) && data.workStart && data.workEnd) {
         const startMinutes = timeToMinutes(data.workStart);
         const endMinutes = timeToMinutes(data.workEnd);
         
@@ -467,7 +566,7 @@ const { className = '' } = Astro.props;
       }
 
       entryData[dateKey] = data;
-      // Los datos están en memoria compartida (no persisten al recargar)
+      // No sincronizar el texto del puesto con la hora efectiva; el nombre del turno solo cambia desde el selector de turno
 
       // Disparar eventos con los datos actualizados
       const dataChangedEvent = new CustomEvent('dataChanged', { 
@@ -483,11 +582,30 @@ const { className = '' } = Astro.props;
       const dateKey = formatDateKey(date);
       const data = entryData[dateKey] || {};
 
+      // Limpiar campo de turno personalizado
+      // (eliminado)
+
       // Cargar posición
       if (data.position) {
-        selectPosition(data.position);
+        // Verificar si la posición es una hora (formato HH:MM)
+        const isCustomTime = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(data.position);
+        
+        if (isCustomTime) {
+          // Si es turno personalizado con hora, mostrar la hora
+          if (positionText) positionText.textContent = data.position;
+          if (timeSectionElement) timeSectionElement.classList.remove('hidden');
+          if (hoursSummary) hoursSummary.classList.remove('hidden');
+        } else if (data.position in availablePositions) {
+          // Si es una posición estándar, cargarla en modo silencioso (sin guardar aún)
+          selectPosition(data.position, true);
+        } else {
+          // Si no es reconocida, intentar mostrarla igual
+          if (positionText) positionText.textContent = data.position;
+          if (timeSectionElement) timeSectionElement.classList.remove('hidden');
+          if (hoursSummary) hoursSummary.classList.remove('hidden');
+        }
       } else {
-        selectPosition('');
+        selectPosition('', true);
       }
 
       // Cargar horarios
@@ -496,6 +614,8 @@ const { className = '' } = Astro.props;
       if (holidayCheckbox) holidayCheckbox.checked = data.isHoliday || false;
 
       calculateHours();
+      // Guardar una vez con el estado de festivo correcto aplicado
+      saveDayData();
     }
 
     function showDayEditor(date: Date | null) {
@@ -536,10 +656,18 @@ const { className = '' } = Astro.props;
         calculateHours();
         saveDayData();
       });
+      workStartInput.addEventListener('input', function() {
+        calculateHours();
+        saveDayData();
+      });
     }
 
     if (workEndInput) {
       workEndInput.addEventListener('change', function() {
+        calculateHours();
+        saveDayData();
+      });
+      workEndInput.addEventListener('input', function() {
         calculateHours();
         saveDayData();
       });
@@ -552,10 +680,111 @@ const { className = '' } = Astro.props;
       });
     }
 
+    // (Eliminado) Lógica de customShiftInput
+
     // Escuchar selección de día
     document.addEventListener('daySelected', function(event: any) {
       currentSelectedDate = event.detail.date;
       showDayEditor(currentSelectedDate);
+    });
+
+    // Formateo automático para inputs de tiempo
+    const timeInputs = document.querySelectorAll('.work-time-input');
+    timeInputs.forEach(input => {
+      const timeInput = input as HTMLInputElement;
+      
+      timeInput.addEventListener('input', function(e) {
+        let value = (e.target as HTMLInputElement).value;
+        
+        // Permitir solo dígitos y dos puntos
+        value = value.replace(/[^\d:]/g, '');
+        
+        // Limitar a 5 caracteres
+        if (value.length > 5) {
+          value = value.slice(0, 5);
+        }
+        
+        // Asegurar que solo haya un ":"
+        const parts = value.split(':');
+        if (parts.length > 2) {
+          value = parts[0] + ':' + parts.slice(1).join('');
+        }
+        
+        // Validación inteligente mientras se escribe
+        if (value.length >= 2 && value.includes(':')) {
+          const [hours, minutes] = value.split(':');
+          
+          // Validar horas (0-23)
+          if (hours) {
+            const h = parseInt(hours, 10);
+            if (h > 23) {
+              value = '23' + (minutes ? ':' + minutes : '');
+            }
+          }
+          
+          // Validar minutos (0-59)
+          if (minutes && minutes.length >= 2) {
+            const m = parseInt(minutes, 10);
+            if (m > 59) {
+              const h = value.split(':')[0];
+              value = h + ':59';
+            }
+          }
+        }
+        
+        // Formateo automático
+        if (value.length === 2 && !value.includes(':')) {
+          value = value + ':';
+        }
+        
+        timeInput.value = value;
+      });
+      
+      timeInput.addEventListener('blur', function(e) {
+        let value = (e.target as HTMLInputElement).value;
+        
+        if (value && value.length === 5) {
+          const [hours, minutes] = value.split(':');
+          const h = parseInt(hours, 10);
+          const m = parseInt(minutes, 10);
+          
+          // Validar y formatear
+          if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+            timeInput.value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+          } else {
+            // Si no es válido, mostrar mensaje o corregir
+            if (h > 23) {
+              timeInput.value = '23:59';
+            } else if (m > 59) {
+              timeInput.value = `${h.toString().padStart(2, '0')}:59`;
+            } else {
+              timeInput.value = '00:00';
+            }
+          }
+        } else if (value && value.length === 4 && !value.includes(':')) {
+          // Si tiene 4 dígitos sin :, añadirlo
+          const paddedValue = value.padStart(4, '0');
+          const formatted = `${paddedValue.slice(0, 2)}:${paddedValue.slice(2)}`;
+          const [h, m] = formatted.split(':').map(Number);
+          
+          if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+            timeInput.value = formatted;
+          } else {
+            timeInput.value = '00:00';
+          }
+        } else if (value && !value.includes(':')) {
+          // Si tiene menos de 4 dígitos, intentar formatear
+          const paddedValue = value.padStart(4, '0');
+          const formatted = `${paddedValue.slice(0, 2)}:${paddedValue.slice(2)}`;
+          const [h, m] = formatted.split(':').map(Number);
+          
+          if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+            timeInput.value = formatted;
+          } else {
+            timeInput.value = '';
+          }
+        }
+      });
     });
 
     // Inicializar dropdown

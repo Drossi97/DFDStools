@@ -271,7 +271,8 @@ export class DataComparer {
       });
 
       const duplicateNumber = tmeRecord["Duplicado"]?.toString() || '1';
-      const displayTicketNumber = `${tmeCoupon} (Dup. ${duplicateNumber})`;
+      // Mostrar siempre el ticket/cupón tal cual se detectó
+      const displayTicketNumber = tmeCoupon;
 
       const nameFields = tmeData.headers.filter((header: string) => 
         header.toLowerCase().includes('nombre') || 

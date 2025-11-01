@@ -90,23 +90,129 @@ const { className = '' } = Astro.props;
       return isNaN(value) ? "0.00" : value.toFixed(2);
     }
 
+    function timeToMinutes(time: string): number {
+      const [h, m] = (time || '').split(':').map((n) => parseInt(n || '0', 10));
+      if (isNaN(h) || isNaN(m)) return NaN;
+      return h * 60 + m;
+    }
+
+    function addDaysKey(dateKey: string, days: number): string {
+      const [y, m, d] = dateKey.split('-').map(Number);
+      const dt = new Date(y, (m || 1) - 1, d || 1);
+      dt.setDate(dt.getDate() + days);
+      const yy = dt.getFullYear();
+      const mm = String(dt.getMonth() + 1).padStart(2, '0');
+      const dd = String(dt.getDate()).padStart(2, '0');
+      return `${yy}-${mm}-${dd}`;
+    }
+
+    function calculateNightHours(startTime: string, endTime: string): number {
+      const nightStart = '22:00';
+      const nightEnd = '06:00';
+      const startMinutes = timeToMinutes(startTime);
+      const endMinutesRaw = timeToMinutes(endTime);
+      if (isNaN(startMinutes) || isNaN(endMinutesRaw)) return 0;
+      let workStart = startMinutes;
+      let workEnd = endMinutesRaw;
+      if (workEnd <= workStart) workEnd += 24 * 60; // cruza medianoche
+
+      const nightStartMinutes = timeToMinutes(nightStart); // 1320
+      const nightEndMinutes = timeToMinutes(nightEnd);     // 360
+
+      const overlap = (aStart: number, aEnd: number, bStart: number, bEnd: number) => {
+        const s = Math.max(aStart, bStart);
+        const e = Math.min(aEnd, bEnd);
+        return Math.max(0, e - s);
+      };
+
+      let nightMinutes = 0;
+      nightMinutes += overlap(workStart, workEnd, nightStartMinutes, 24 * 60); // 22:00-24:00
+      if (workEnd > 24 * 60) {
+        nightMinutes += overlap(workStart, workEnd, 24 * 60, 24 * 60 + nightEndMinutes); // 00:00-06:00 del siguiente día
+      } else {
+        nightMinutes += overlap(workStart, workEnd, 0, nightEndMinutes); // 00:00-06:00 del mismo día
+      }
+
+      return nightMinutes / 60;
+    }
+
+    function computeOwnHolidayHours(data: any): number {
+      if (!data?.isHoliday) return 0;
+      const startMin = timeToMinutes(data.workStart || '');
+      const endMinRaw = timeToMinutes(data.workEnd || '');
+      if (isNaN(startMin) || isNaN(endMinRaw)) return 0;
+      let endMin = endMinRaw;
+      if (endMin < startMin) endMin += 24 * 60;
+      const totalMin = endMin - startMin;
+      if (startMin + totalMin > 24 * 60) {
+        // Solo hasta medianoche de ese día
+        return (24 * 60 - startMin) / 60;
+      }
+      return totalMin / 60;
+    }
+
+    function computePrevCarryHolidayHours(dateKey: string, all: Record<string, any>): number {
+      const prevKey = addDaysKey(dateKey, -1);
+      const prev = all[prevKey];
+      const current = all[dateKey];
+      if (!current?.isHoliday || !prev) return 0;
+      const s = timeToMinutes(prev.workStart || '');
+      const e = timeToMinutes(prev.workEnd || '');
+      if (isNaN(s) || isNaN(e)) return 0;
+      if (e < s) {
+        // Parte tras medianoche pertenece al día actual
+        return e / 60;
+      }
+      return 0;
+    }
+
+    function enrichEntry(dateKey: string, data: any, all?: Record<string, any>) {
+      const enriched: any = { ...data };
+      const start = data.workStart;
+      const end = data.workEnd;
+      if (start && end) {
+        const startMin = timeToMinutes(start);
+        let endMin = timeToMinutes(end);
+        if (!isNaN(startMin) && !isNaN(endMin)) {
+          let totalMin = endMin - startMin;
+          if (totalMin < 0) totalMin += 24 * 60;
+          const totalH = totalMin / 60;
+          // Recalcular SIEMPRE para evitar valores 0 persistentes
+          enriched.totalHours = totalH;
+          enriched.extraHours = Math.max(0, totalH - 8);
+          enriched.nightHours = calculateNightHours(start, end);
+        }
+      }
+      // Recalcular horas festivas de forma determinista
+      const ownHoliday = computeOwnHolidayHours(enriched);
+      const carryHoliday = all ? computePrevCarryHolidayHours(dateKey, all) : 0;
+      enriched.holidayHours = ownHoliday + carryHoliday;
+      return enriched;
+    }
+
     function calculateSummary(event?: any) {
       try {
-        const timeEntriesData = (window as any).timeEntriesData || {};
-        if (!timeEntriesData || Object.keys(timeEntriesData).length === 0) {
+        const timeEntriesData: Record<string, any> = (window as any).timeEntriesData || {};
+        const keysSorted = Object.keys(timeEntriesData).sort((a, b) => {
+          const [ay, am, ad] = a.split('-').map(Number);
+          const [by, bm, bd] = b.split('-').map(Number);
+          return new Date(ay, am - 1, ad).getTime() - new Date(by, bm - 1, bd).getTime();
+        });
+        if (keysSorted.length === 0) {
           updateSummaryDisplay(0, 0, 0, 0);
           return;
         }
 
         let totals = { total: 0, extra: 0, night: 0, holiday: 0 };
 
-        // Sumar todas las entradas
-        Object.entries(timeEntriesData).forEach(([dateKey, data]: [string, any]) => {
+        keysSorted.forEach((key) => {
+          const data = timeEntriesData[key];
           if (data && typeof data === 'object') {
-            totals.total += data.totalHours || 0;
-            totals.extra += data.extraHours || 0;
-            totals.night += data.nightHours || 0;
-            totals.holiday += data.holidayHours || 0;
+            const e = enrichEntry(key, data, timeEntriesData);
+            totals.total += e.totalHours || 0;
+            totals.extra += e.extraHours || 0;
+            totals.night += e.nightHours || 0;
+            totals.holiday += e.holidayHours || 0;
           }
         });
 
@@ -137,13 +243,19 @@ const { className = '' } = Astro.props;
 
     async function exportToExcel() {
       try {
-        const timeEntriesData = (window as any).timeEntriesData || {};
+        const timeEntriesData: Record<string, any> = (window as any).timeEntriesData || {};
         const entries = Object.entries(timeEntriesData)
           .filter(([dateKey, data]) => data && (data as any).position)
-          .map(([dateKey, data]) => ({
-            date: new Date(dateKey),
-            ...(data as any)
-          }))
+          .map(([dateKey, data]) => {
+            // Parsear fecha correctamente sin cambios de zona horaria
+            const [year, month, day] = dateKey.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            const enriched = enrichEntry(dateKey, data, timeEntriesData);
+            return {
+              date: date,
+              ...(enriched as any)
+            };
+          })
           .sort((a, b) => a.date.getTime() - b.date.getTime());
 
         if (entries.length === 0) {
@@ -168,79 +280,108 @@ const { className = '' } = Astro.props;
 
         const headers = [...baseHeaders, ...optionalHeaders];
         const numColumns = headers.length;
+        const tableOffset = 1; // desplazar una columna a la derecha
 
         // Crear workbook y worksheet
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Registro de Horas');
 
-        // Título
-        const titleRow = worksheet.addRow([`Registro de Horas - ${currentWorkerData.firstName || "Usuario"}`]);
-        titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FF002B45' } };
-        titleRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+        // Construir nombre completo del trabajador
+        const fullName = [currentWorkerData.firstName, currentWorkerData.lastName, currentWorkerData.secondLastName]
+          .filter(Boolean)
+          .join(' ')
+          .trim() || 'Usuario';
+
+        // Meses involucrados (ordenados y únicos)
+        const monthAbbr = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        const monthKeys: string[] = Array.from(new Set(entries.map(e => `${e.date.getFullYear()}-${String(e.date.getMonth()+1).padStart(2,'0')}`)))
+          .sort((a,b)=> a.localeCompare(b));
+        const monthsLabels = monthKeys.map(k => {
+          const [y, m] = k.split('-').map(Number);
+          return `${monthAbbr[(m||1)-1]}-${y}`;
+        });
+
+        // Título: desplazar 1 columna (B) y 1 fila hacia abajo
+        worksheet.addRow([]); // fila en blanco para bajar una fila
+        const titleRow = worksheet.addRow(['', '']);
+        const titleCell = titleRow.getCell(2);
+        titleCell.value = {
+          richText: [
+            { text: 'TRABAJADOR · ', font: { color: { argb: 'FF64748B' }, size: 11, bold: true } },
+            { text: fullName, font: { color: { argb: 'FF002B45' }, size: 15, bold: true } },
+          ],
+        } as any;
+        titleCell.alignment = { horizontal: 'left', vertical: 'middle' };
+        titleRow.height = 20;
         worksheet.addRow([]);
 
         // Encabezados
-        const headerRow = worksheet.addRow(headers);
+        const headerRow = worksheet.addRow(['', ...headers]);
         
         // Estilo para encabezados
         headerRow.eachCell((cell: any, colNumber: number) => {
-          if (colNumber <= numColumns) {
+          if (colNumber === 1) return; // columna vacía sin estilo
+          if (colNumber <= numColumns + tableOffset) {
             cell.fill = {
               type: 'pattern',
               pattern: 'solid',
-              fgColor: { argb: 'FF1e3a8a' }
+              fgColor: { argb: 'FF0A6AA1' } // azul menos oscuro
             };
             cell.font = {
               color: { argb: 'FFFFFFFF' },
               bold: true,
-              size: 11
+              size: 12
             };
             cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            cell.border = {
-              top: { style: 'thin', color: { argb: 'FF1e3a8a' } },
-              left: { style: 'thin', color: { argb: 'FF1e3a8a' } },
-              bottom: { style: 'thin', color: { argb: 'FF1e3a8a' } },
-              right: { style: 'thin', color: { argb: 'FF1e3a8a' } }
-            };
+            // Sin bordes en el encabezado
+            cell.border = undefined as any;
           }
         });
 
         // Datos
         entries.forEach((entry: any, index: number) => {
-          const baseRow = [
-            entry.date.toLocaleDateString('es-ES'),
+          // Formatear fecha manualmente para evitar problemas de zona horaria
+          const day = entry.date.getDate();
+          const month = entry.date.getMonth() + 1;
+          const year = entry.date.getFullYear();
+          const formattedDate = `${day}/${month}/${year}`;
+          
+          const baseRow: any[] = [
+            formattedDate,
             entry.position,
             entry.workStart && entry.workEnd ? `${entry.workStart} - ${entry.workEnd}` : "",
-            entry.totalHours > 0 ? formatNumber(entry.totalHours) : ""
+            entry.totalHours > 0 ? Number(entry.totalHours) : ''
           ];
 
-          if (hasExtras) baseRow.push(entry.extraHours > 0 ? formatNumber(entry.extraHours) : "");
-          if (hasNight) baseRow.push(entry.nightHours > 0 ? formatNumber(entry.nightHours) : "");
-          if (hasHoliday) baseRow.push(entry.holidayHours > 0 ? formatNumber(entry.holidayHours) : "");
+          if (hasExtras) baseRow.push(entry.extraHours > 0 ? Number(entry.extraHours) : "");
+          if (hasNight) baseRow.push(entry.nightHours > 0 ? Number(entry.nightHours) : "");
+          if (hasHoliday) baseRow.push(entry.holidayHours > 0 ? Number(entry.holidayHours) : "");
 
-          const dataRow = worksheet.addRow(baseRow);
+          const dataRow = worksheet.addRow(['', ...baseRow]);
           
-          // Estilo para filas de datos
+          // Estilo para filas de datos (diseño cebra sutil)
           dataRow.eachCell((cell: any, colNumber: number) => {
-            if (colNumber <= numColumns) {
+            if (colNumber === 1) return; // columna vacía sin estilo
+            if (colNumber <= numColumns + tableOffset) {
               cell.fill = {
                 type: 'pattern',
                 pattern: 'solid',
-                fgColor: { argb: index % 2 === 0 ? 'FFF8FAFC' : 'FFFFFFFF' }
+                fgColor: { argb: index % 2 === 0 ? 'FFF1F5F9' : 'FFFFFFFF' }
               };
               cell.font = { size: 10 };
-              cell.alignment = { horizontal: 'center', vertical: 'middle' };
-              cell.border = {
-                top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-                left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-                bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-                right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
-              };
-              
-              // Formato numérico para columnas de horas
-              if (colNumber >= 4 && cell.value && typeof cell.value === 'string' && cell.value !== '') {
+              // Alinear números a la derecha a partir de la columna 4
+              if (colNumber >= (4 + tableOffset) && cell.value !== '' && cell.value !== null && cell.value !== undefined) {
+                cell.alignment = { horizontal: 'right', vertical: 'middle' };
                 cell.numFmt = '0.00';
+              } else {
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
               }
+              cell.border = {
+                top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+              };
             }
           });
         });
@@ -249,56 +390,54 @@ const { className = '' } = Astro.props;
         worksheet.addRow([]);
 
         // Fila de totales
-        const totalsRowData = ["", "", "Σ Total", formatNumber(currentSummary.total)];
-        if (hasExtras) totalsRowData.push(currentSummary.extra > 0 ? formatNumber(currentSummary.extra) : "");
-        if (hasNight) totalsRowData.push(currentSummary.night > 0 ? formatNumber(currentSummary.night) : "");
-        if (hasHoliday) totalsRowData.push(currentSummary.holiday > 0 ? formatNumber(currentSummary.holiday) : "");
+        const totalsRowData: any[] = ["", "", "Σ Total", Number(currentSummary.total)];
+        if (hasExtras) totalsRowData.push(currentSummary.extra > 0 ? Number(currentSummary.extra) : "");
+        if (hasNight) totalsRowData.push(currentSummary.night > 0 ? Number(currentSummary.night) : "");
+        if (hasHoliday) totalsRowData.push(currentSummary.holiday > 0 ? Number(currentSummary.holiday) : "");
 
-        const totalsRowExcel = worksheet.addRow(totalsRowData);
+        const totalsRowExcel = worksheet.addRow(['', ...totalsRowData]);
 
-        // Estilo para fila de totales (solo desde la columna "Σ Total" en adelante)
+        // Estilo para fila de totales (separación clara y números a la derecha)
         totalsRowExcel.eachCell((cell: any, colNumber: number) => {
-          if (colNumber <= numColumns) {
-            // Solo aplicar el fondo naranja desde la columna 3 ("Σ Total") en adelante
-            if (colNumber >= 3) {
+          if (colNumber <= numColumns + tableOffset) {
+            if (colNumber >= (3 + tableOffset)) {
               cell.fill = {
                 type: 'pattern',
                 pattern: 'solid',
-                fgColor: { argb: 'FFFEF3C7' }
+                fgColor: { argb: 'FFE6F0F7' } // azul claro coherente
               };
               cell.font = { bold: true };
               cell.border = {
-                top: { style: 'medium', color: { argb: 'FFF59E0B' } },
-                left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-                bottom: { style: 'medium', color: { argb: 'FFF59E0B' } },
-                right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+                top: { style: 'thick', color: { argb: 'FF0A6AA1' } },
+                left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
               };
             } else {
-              // Para las primeras 2 columnas, solo aplicar bordes sin fondo
-              cell.border = {
-                top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-                left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-                bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-                right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
-              };
+              // Sin estilo para las dos primeras celdas
+              cell.fill = undefined as any;
+              cell.border = undefined as any;
+              cell.font = { bold: false };
+              cell.alignment = { horizontal: 'left', vertical: 'middle' };
             }
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            
-            // Formato numérico para columnas de horas
-            if (colNumber >= 4 && cell.value && typeof cell.value === 'string' && cell.value !== '') {
+            // Alinear números a la derecha en columnas de horas
+            if (colNumber >= (4 + tableOffset) && cell.value !== '' && cell.value !== null && cell.value !== undefined) {
+              cell.alignment = { horizontal: 'right', vertical: 'middle' };
               cell.numFmt = '0.00';
+            } else if (colNumber === (3 + tableOffset)) {
+              cell.alignment = { horizontal: 'center', vertical: 'middle' };
             }
           }
         });
 
         // Ajustar ancho de columnas
         headers.forEach((header, index) => {
-          const column = worksheet.getColumn(index + 1);
+          const column = worksheet.getColumn(index + 1 + tableOffset);
           let maxWidth = header.length;
           
           worksheet.eachRow((row: any, rowNumber: number) => {
             if (rowNumber > 2) {
-              const cell = row.getCell(index + 1);
+              const cell = row.getCell(index + 1 + tableOffset);
               if (cell.value) {
                 const cellLength = cell.value.toString().length;
                 if (cellLength > maxWidth) {
@@ -310,12 +449,22 @@ const { className = '' } = Astro.props;
           
           column.width = Math.min(maxWidth + 2, 20);
         });
+        // Fijar la primera columna (offset) a un ancho pequeño
+        worksheet.getColumn(1).width = 2;
 
         // Generar archivo
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        
-        const filename = `${(currentWorkerData.firstName || "Usuario").replace(/\s+/g, "_")}_RegistroHoras_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}.xlsx`;
+
+        // Normalizar cadenas para nombre de archivo
+        const sanitize = (s: string) => s
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^\w\-]+/g, '') // quitar caracteres no seguros
+          .trim();
+        const safeName = sanitize(fullName.replace(/\s+/g, '')) || 'Usuario';
+        const monthsPart = monthsLabels.length ? monthsLabels.map(sanitize).join('_') : 'sinMes';
+        const filename = `Horas-${safeName}_${monthsPart}.xlsx`;
         
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

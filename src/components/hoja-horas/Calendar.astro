@@ -126,7 +126,10 @@ const { className = '' } = Astro.props;
 
     function getDayData(date: Date) {
       try {
-        const dateKey = date.toISOString().split('T')[0];
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        const dateKey = `${y}-${m}-${d}`;
         const timeEntriesData = (window as any).timeEntriesData || {};
         return timeEntriesData[dateKey] || null;
       } catch (e) {
