@@ -53,9 +53,25 @@ const chartIcon = `<svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="non
         <hr class="border-gray-300" />
 
         <!-- Sección del Resumen -->
-        <CollapsibleSection title="Resumen del Desglose" icon={chartIcon}>
+        <div class="border border-gray-300 rounded-md p-4 bg-white">
           <SummaryView />
-        </CollapsibleSection>
+        </div>
+
+        <!-- Botón de exportar (fuera del recuadro) -->
+        <div class="flex justify-end mt-4">
+          <button
+            id="export-excel"
+            type="button"
+            class="w-48 h-9 flex items-center justify-center px-3 py-1.5 text-sm font-medium text-white bg-[#002B45] rounded-md focus:outline-none disabled:bg-gray-300 disabled:cursor-not-allowed hover:shadow-md transition-shadow"
+          >
+            <svg class="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Exportar a Excel
+          </button>
+        </div>
       </div>
     </div>
   </main>
