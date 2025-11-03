@@ -150,6 +150,19 @@ const { className = '' } = Astro.props;
 
     function enrichEntry(dateKey: string, data: any, all?: Record<string, any>) {
       const enriched: any = { ...data };
+      
+      // Lista de posiciones sin horas (debe coincidir con DayEditor)
+      const noHoursPositions = ['D', 'P', 'B', 'V', '--'];
+      
+      // Si la posición es una que no tiene horas, forzar todo a 0
+      if (data.position && noHoursPositions.includes(data.position)) {
+        enriched.totalHours = 0;
+        enriched.extraHours = 0;
+        enriched.nightHours = 0;
+        enriched.holidayHours = 0;
+        return enriched;
+      }
+      
       const start = data.workStart;
       const end = data.workEnd;
       if (start && end) {

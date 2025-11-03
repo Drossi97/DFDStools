@@ -529,7 +529,8 @@ const { className = '' } = Astro.props;
         data.position = data.workStart;
       }
 
-      // Calcular horas si es un puesto con horario
+      // Calcular horas SOLO si es un puesto con horario válido
+      // Si es una posición sin horas (D, P, B, V, --), forzar todo a 0
       if (resolvedPosition && !noHoursPositions.includes(resolvedPosition) && data.workStart && data.workEnd) {
         const startMinutes = timeToMinutes(data.workStart);
         const endMinutes = timeToMinutes(data.workEnd);
@@ -563,6 +564,14 @@ const { className = '' } = Astro.props;
             data.holidayHours += hoursAfterMidnight;
           }
         }
+      } else {
+        // Forzar todos los valores a 0 si no es un turno válido con horario
+        data.totalHours = 0;
+        data.extraHours = 0;
+        data.nightHours = 0;
+        data.holidayHours = 0;
+        data.workStart = '';
+        data.workEnd = '';
       }
 
       entryData[dateKey] = data;
