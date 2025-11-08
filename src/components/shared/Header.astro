@@ -24,6 +24,7 @@
 				<a href="/cuadrar-sobordos" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors nav-link">Cuadrar Sobordos</a>
 				<a href="/actualizar-tripulantes" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors nav-link">Actualizar Tripulantes</a>
 				<a href="/calculadora" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors nav-link">Calculadora</a>
+				<a href="/traductor" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors nav-link">Traductor (solo Chrome)</a>
 			</div>
 		</div>
 	</div>
@@ -49,6 +50,8 @@
 			if (currentPageSpan) currentPageSpan.textContent = 'Actualizar Tripulantes';
 		} else if (currentPath.includes('/calculadora')) {
 			if (currentPageSpan) currentPageSpan.textContent = 'Calculadora';
+		} else if (currentPath.includes('/traductor')) {
+			if (currentPageSpan) currentPageSpan.textContent = 'Traductor';
 		}
 
 		if (dropdownButton && dropdown) {

@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/shared/Header.astro';
+import Traductor from '../components/traductor/Traductor.astro';
+---
+
+<Layout>
+	<Header />
+	
+  <main class="min-h-screen bg-[#f4f7f9] pt-[67px]">
+    <div class="flex flex-col items-center pt-12 px-4 pb-12">
+      <Traductor />
+      
+      <div class="w-full max-w-4xl mt-8">
+        <div class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg text-sm">
+          <strong>Nota:</strong> Este traductor utiliza las APIs nativas de Chrome (Translator y LanguageDetector) que requieren Chrome 120+ o Edge 120+ con las funciones experimentales de IA habilitadas. 
+          Si no funcionan las traducciones, visita <code class="bg-blue-100 px-1 py-0.5 rounded">chrome://flags/#optimization-guide-on-device-model</code> y activa "Enables optimization guide on device".
+        </div>
+      </div>
+    </div>
+	</main>
+</Layout>
+
